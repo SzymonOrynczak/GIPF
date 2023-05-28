@@ -27,7 +27,6 @@ enum BoardState {
 void readBoard()
 {
 
-    while()
 }
 
 
