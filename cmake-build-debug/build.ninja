@@ -55,12 +55,6 @@ build CMakeFiles/GIPF.dir/main.cpp.obj: CXX_COMPILER__GIPF_Debug C$:/Users/szymo
   OBJECT_DIR = CMakeFiles\GIPF.dir
   OBJECT_FILE_DIR = CMakeFiles\GIPF.dir
 
-build CMakeFiles/GIPF.dir/board.cpp.obj: CXX_COMPILER__GIPF_Debug C$:/Users/szymo/CLionProjects/GIPF/board.cpp || cmake_object_order_depends_target_GIPF
-  DEP_FILE = CMakeFiles\GIPF.dir\board.cpp.obj.d
-  FLAGS = -g -fdiagnostics-color=always
-  OBJECT_DIR = CMakeFiles\GIPF.dir
-  OBJECT_FILE_DIR = CMakeFiles\GIPF.dir
-
 
 # =============================================================================
 # Link build statements for EXECUTABLE target GIPF
@@ -69,7 +63,7 @@ build CMakeFiles/GIPF.dir/board.cpp.obj: CXX_COMPILER__GIPF_Debug C$:/Users/szym
 #############################################
 # Link the executable GIPF.exe
 
-build GIPF.exe: CXX_EXECUTABLE_LINKER__GIPF_Debug CMakeFiles/GIPF.dir/main.cpp.obj CMakeFiles/GIPF.dir/board.cpp.obj
+build GIPF.exe: CXX_EXECUTABLE_LINKER__GIPF_Debug CMakeFiles/GIPF.dir/main.cpp.obj
   FLAGS = -g
   LINK_LIBRARIES = -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
   OBJECT_DIR = CMakeFiles\GIPF.dir
