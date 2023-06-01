@@ -10,7 +10,7 @@ const string DOMOVE = "DO_MOVE";
 const char WHITEPAWN = 'W';
 const char BLACKPAWN = 'B';
 const char EMPTYFIELD = '_';
-const char BORDER = '+';
+const char FRAMEFIELD = '+';
 
 const char WHITEPLAYER = 'W';
 const char BLACKPLAYER = 'B';
@@ -36,18 +36,17 @@ enum Direction
 };
 
 
-
 struct Field
 {
     char fieldCharID;
     int fieldIntID;
     char object; //pawn, empty or border
-    Field* LT;
-    Field* RT;
-    Field* L; //prev
-    Field* R; //next
-    Field* LB;
-    Field* RB;
+    Field* LeftTop;
+    Field* RightTop;
+    Field* Left; //prev
+    Field* Right; //next
+    Field* LeftBottom;
+    Field* RightBottom;
 };
 
 
@@ -59,7 +58,7 @@ struct Board
     int allBlackPawns;
     int whitePawnsReserve;
     int blackPawnsReserve;
-    char player;
+    char playerColor;
     Field** heads;
     BoardState boardState;
 };
@@ -93,7 +92,7 @@ void printField(Field* field)
 {
     if (field != nullptr)
     {
-        cout << field->fieldCharID << field->fieldIntID << " ";
+        //cout << field->fieldCharID << field->fieldIntID << " ";
     }
 
     else
@@ -106,12 +105,12 @@ void printField(Field* field)
 void printNeighbours(Field* current)
 {
     cout << "{ ";
-    printField(current->L);
-    printField(current->LT);
-    printField(current->RT);
-    printField(current->R);
-    printField(current->RB);
-    printField(current->LB);
+    printField(current->Left);
+    printField(current->LeftTop);
+    printField(current->RightTop);
+    printField(current->Right);
+    printField(current->RightBottom);
+    printField(current->LeftBottom);
     cout << " }";
 }
 
@@ -125,7 +124,7 @@ void printBoardLine(Field* head)
         printField(current);
         cout << current->object << " ";
         //printNeighbours(current);
-        current = current->R;
+        current = current->Right;
     }
 
     cout << endl;
@@ -188,15 +187,15 @@ Field* createTopFrameLine(int size)
     for (int i = 0; i < size; ++i)
     {
         auto* newField = (Field*)malloc(sizeof(Field));
-        newField->object = BORDER;
-        newField->R = head;
-        if (head != nullptr) { head->L = newField; }
+        newField->object = FRAMEFIELD;
+        newField->Right = head;
+        if (head != nullptr) { head->Left = newField; }
         head = newField;
-        newField->L = nullptr;
-        newField->RT = nullptr;
-        newField->RB = nullptr;
-        newField->LT = nullptr;
-        newField->LB = nullptr;
+        newField->Left = nullptr;
+        newField->RightTop = nullptr;
+        newField->RightBottom = nullptr;
+        newField->LeftTop = nullptr;
+        newField->LeftBottom = nullptr;
     }
 
     cout << "Stworzono gorny frame" << endl;
@@ -213,23 +212,23 @@ Field* createBottomFrameLine(int size, Field* prevHead)
     for (int i = 0; i < size; ++i)
     {
         auto* newField = (Field*)malloc(sizeof(Field));
-        newField->object = BORDER;
-        newField->L = prev;
+        newField->object = FRAMEFIELD;
+        newField->Left = prev;
 
-        if (head != nullptr) { prev->R = newField; }
+        if (head != nullptr) { prev->Right = newField; }
         else { head = newField; }
 
-        newField->R = nullptr;
-        newField->LB = nullptr;
-        newField->RB = nullptr;
+        newField->Right = nullptr;
+        newField->LeftBottom = nullptr;
+        newField->RightBottom = nullptr;
 
-        newField->LT = currentPrevLine;
-        currentPrevLine->RB = newField;
+        newField->LeftTop = currentPrevLine;
+        currentPrevLine->RightBottom = newField;
 
-        newField->RT = currentPrevLine->R;
-        currentPrevLine->R->LB = newField;
+        newField->RightTop = currentPrevLine->Right;
+        currentPrevLine->Right->LeftBottom = newField;
 
-        currentPrevLine = currentPrevLine->R;
+        currentPrevLine = currentPrevLine->Right;
         prev = newField;
     }
 
@@ -241,39 +240,40 @@ Field* createBottomFrameLine(int size, Field* prevHead)
 Field* createBoardLine(int objectN, Field* prevHead, bool spaceDecreasing, Board &board)
 {
     char letter;
+    char sign;
 
-    auto* head = (Field*)malloc(sizeof(Field));
-    head->L = nullptr;
-    head->R = nullptr;
-    head->RB = nullptr;
-    head->LB = nullptr;
+    Field* head = (Field*)malloc(sizeof(Field));
+    head->Left = nullptr;
+    head->Right = nullptr;
+    head->RightBottom = nullptr;
+    head->LeftBottom = nullptr;
 
     Field* currentPrevLine = prevHead;
 
     if (spaceDecreasing)
     {
-        head->LT = nullptr;
-        head->RT = prevHead;
-        prevHead->LB = head;
+        head->LeftTop = nullptr;
+        head->RightTop = prevHead;
+        prevHead->LeftBottom = head;
     }
 
     else
     {
-        head->LT = prevHead;
-        prevHead->RB = head;
-        head->RT = prevHead->R;
-        prevHead->R->LB = head;
-        currentPrevLine = prevHead->R;
+        head->LeftTop = prevHead;
+        prevHead->RightBottom = head;
+        head->RightTop = prevHead->Right;
+        prevHead->Right->LeftBottom = head;
+        currentPrevLine = prevHead->Right;
     }
 
-    head->object = BORDER;
+    head->object = FRAMEFIELD;
 
     Field* currentLine = head;
 
     for (int k = 0; k < objectN; k++)
     {
-        scanf("%c", &letter);
-        cout << "Wczytany obiekt: " << letter << endl;
+        scanf("%c", &sign);
+        cout << "Wczytany obiekt: " << sign << endl;
         scanf("%c", &letter);
         cout << "Wczytana spacja lub enter: " << letter << endl;
 
@@ -290,52 +290,52 @@ Field* createBoardLine(int objectN, Field* prevHead, bool spaceDecreasing, Board
             board.boardState = WRONG_BOARD_ROW_LENGTH;
         }
 
-        auto* nextField = (Field*)malloc(sizeof(Field));
-        nextField->object = letter;
+        Field* nextField = (Field*)malloc(sizeof(Field));
+        nextField->object = sign;
 
-        nextField->LB = nullptr;
-        nextField->RB = nullptr;
+        nextField->LeftBottom = nullptr;
+        nextField->RightBottom = nullptr;
 
-        nextField->R = nullptr;
-        nextField->L = currentLine;
-        currentLine->R = nextField;
+        nextField->Right = nullptr;
+        nextField->Left = currentLine;
+        currentLine->Right = nextField;
 
-        nextField->LT = currentPrevLine;
-        currentPrevLine->RB = nextField;
+        nextField->LeftTop = currentPrevLine;
+        currentPrevLine->RightBottom = nextField;
 
-        nextField->RT = currentPrevLine->R;
-        currentPrevLine->R->LB = nextField;
+        nextField->RightTop = currentPrevLine->Right;
+        currentPrevLine->Right->LeftBottom = nextField;
 
         currentLine = nextField;
-        currentPrevLine = currentPrevLine->R;
+        currentPrevLine = currentPrevLine->Right;
     }
 
 
 
     auto* last = (Field*)malloc(sizeof(Field));
-    last->object = BORDER;
+    last->object = FRAMEFIELD;
 
-    last->R = nullptr;
-    last->RB = nullptr;
-    last->LB = nullptr;
+    last->Right = nullptr;
+    last->RightBottom = nullptr;
+    last->LeftBottom = nullptr;
 
-    last->L = currentLine;
-    currentLine->R = last;
+    last->Left = currentLine;
+    currentLine->Right = last;
 
     if (spaceDecreasing)
     {
-        last->RT = nullptr;
-        last->LT = currentPrevLine;
-        currentPrevLine->RB = last;
+        last->RightTop = nullptr;
+        last->LeftTop = currentPrevLine;
+        currentPrevLine->RightBottom = last;
     }
 
     else
     {
-        last->LT = currentPrevLine;
-        currentPrevLine->RB = last;
+        last->LeftTop = currentPrevLine;
+        currentPrevLine->RightBottom = last;
 
-        last->RT = currentPrevLine->R;
-        currentPrevLine->R->LB = last;
+        last->RightTop = currentPrevLine->Right;
+        currentPrevLine->Right->LeftBottom = last;
     }
 
     return head;
@@ -388,7 +388,7 @@ void numerateTiltedLine(Field* tiltedLineHead, char letter)
         current->fieldCharID = letter;
         current->fieldIntID = index;
         index++;
-        current = current->RT;
+        current = current->RightTop;
     }
 }
 
@@ -409,7 +409,7 @@ void nameFields(Board &board)
     {
         numerateTiltedLine(current, startingLetter);
         startingLetter++;
-        current = current->R;
+        current = current->Right;
     }
 }
 
@@ -424,13 +424,13 @@ void readBoard(Board &board)
     scanf("%d", &board.allBlackPawns);
     scanf("%d", &board.whitePawnsReserve);
     scanf("%d", &board.blackPawnsReserve);
-    scanf("%c", &board.player);
-
-    cout << board.S << ", " << board.player << endl;
-
+    char space;
+    scanf("%c", &space);
+    cout << "space: " << space << endl;
+    scanf("%c", &board.playerColor);
+    cout << "playerColor: " << board.playerColor << endl;
     char letter;
     scanf("%c", &letter);
-    cout << "Wczytany enter" << letter << endl;
     createBoard(board);
     nameFields(board);
 }
@@ -457,7 +457,7 @@ void checkPawns(Board board)
                 blackCounter++;
             }
 
-            current = current->R;
+            current = current->Right;
         }
     }
 
@@ -480,7 +480,6 @@ void checkPawns(Board board)
 
 Field* findFieldOnFrame(Board board, char charID, int intID)
 {
-
     Field* last;
     for (int i = 0; i < board.S * 2 + 1; ++i)
     {
@@ -491,9 +490,9 @@ Field* findFieldOnFrame(Board board, char charID, int intID)
 
         last = board.heads[i];
 
-        while (last->R != nullptr)
+        while (last->Right != nullptr)
         {
-            last = last->R;
+            last = last->Right;
         }
 
         if (last->fieldCharID == charID && last->fieldIntID == intID)
@@ -511,7 +510,7 @@ Field* findFieldOnFrame(Board board, char charID, int intID)
             return current;
         }
 
-        current = current->R;
+        current = current->Right;
     }
 
 
@@ -523,7 +522,7 @@ Field* findFieldOnFrame(Board board, char charID, int intID)
             return current;
         }
 
-        current = current->R;
+        current = current->Right;
     }
 
 
@@ -533,7 +532,7 @@ Field* findFieldOnFrame(Board board, char charID, int intID)
 
 Direction findNeighbourField(Field* startingField, char endChar, int endInt)
 {
-    Field* neighbourField = startingField->L;
+    Field* neighbourField = startingField->Left;
 
     if (neighbourField != nullptr)
     {
@@ -543,7 +542,7 @@ Direction findNeighbourField(Field* startingField, char endChar, int endInt)
         }
     }
 
-    neighbourField = startingField->R;
+    neighbourField = startingField->Right;
     if (neighbourField != nullptr)
     {
         if (neighbourField->fieldCharID == endChar && neighbourField->fieldIntID == endInt)
@@ -552,7 +551,7 @@ Direction findNeighbourField(Field* startingField, char endChar, int endInt)
         }
     }
 
-    neighbourField = startingField->LT;
+    neighbourField = startingField->LeftTop;
     if (neighbourField != nullptr)
     {
         if (neighbourField->fieldCharID == endChar && neighbourField->fieldIntID == endInt)
@@ -561,7 +560,7 @@ Direction findNeighbourField(Field* startingField, char endChar, int endInt)
         }
     }
 
-    neighbourField = startingField->RT;
+    neighbourField = startingField->RightTop;
     if (neighbourField != nullptr)
     {
         if (neighbourField->fieldCharID == endChar && neighbourField->fieldIntID == endInt)
@@ -570,7 +569,7 @@ Direction findNeighbourField(Field* startingField, char endChar, int endInt)
         }
     }
 
-    neighbourField = startingField->LB;
+    neighbourField = startingField->LeftBottom;
     if (neighbourField != nullptr)
     {
         if (neighbourField->fieldCharID == endChar && neighbourField->fieldIntID == endInt)
@@ -579,7 +578,7 @@ Direction findNeighbourField(Field* startingField, char endChar, int endInt)
         }
     }
 
-    neighbourField = startingField->RB;
+    neighbourField = startingField->RightBottom;
     if (neighbourField != nullptr)
     {
         if (neighbourField->fieldCharID == endChar && neighbourField->fieldIntID == endInt)
@@ -610,11 +609,82 @@ bool isFieldOnBoard(Board board, char fCharID, int fIntID)
             {
                 return true;
             }
-            current = current->R;
+            current = current->Right;
         }
     }
-
     return false;
+}
+
+
+Field* findNeighbourFieldInDirection(Field* startField, Direction direction)
+{
+    if (direction == LEFT)
+    {
+        return startField->Left;
+    }
+
+    else if (direction == RIGHT)
+    {
+        return startField->Right;
+    }
+
+    if (direction == LEFT_TOP)
+    {
+        return startField->LeftTop;
+    }
+
+    if (direction == RIGHT_TOP)
+    {
+        return startField->RightTop;
+    }
+
+    if (direction == RIGHT_BOTTOM)
+    {
+        return startField->RightBottom;
+    }
+
+    if (direction == LEFT_BOTTOM)
+    {
+        return startField->LeftBottom;
+    }
+
+    return nullptr;
+}
+
+
+bool isEmptyFieldInDirection(Field* startField, Direction direction)
+{
+    Field* current = findNeighbourFieldInDirection(startField, direction);
+
+    while(current != nullptr && (current->object == WHITEPAWN || current->object == BLACKPAWN))
+    {
+        current = findNeighbourFieldInDirection(current, direction);
+    }
+
+    if (current->object == FRAMEFIELD)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+
+void movePawns(Board board, Field* startingField, Direction direction)
+{
+    char currentPawn = board.playerColor;
+    Field* current = findNeighbourFieldInDirection(startingField, direction);
+    cout << "currentPawn: " << currentPawn << endl;
+
+    while (current->object != EMPTYFIELD)
+    {
+        char tempPawn = current->object;
+        current->object = currentPawn;
+        currentPawn = tempPawn;
+        current = findNeighbourFieldInDirection(current, direction);
+    }
+
+    current->object = currentPawn;
 }
 
 
@@ -632,18 +702,46 @@ void checkMove(Board board, char startChar, int startInt, char endChar, int endI
         return;
     }
 
-    Field* fieldOnFrame = findFieldOnFrame(board, startChar, startInt);
-    if (fieldOnFrame == nullptr)
+    Field* startingFieldOnFrame = findFieldOnFrame(board, startChar, startInt);
+
+    if (startingFieldOnFrame == nullptr)
     {
         cout << "BAD_MOVE_" << startChar << startInt << "_IS_WRONG_STARTING_FIELD" << endl;
         return;
     }
 
-    Direction neighbourFieldDirection = findNeighbourField(fieldOnFrame, endChar, endInt);
+    Field* destinationFieldOnFrame = findFieldOnFrame(board, endChar, endInt);
+    if (destinationFieldOnFrame != nullptr)
+    {
+        cout << "BAD_MOVE_" << endChar << endInt << "_IS_WRONG_DESTINATION_FIELD" << endl;
+        return;
+    }
 
-    // TODO: rozważyć pozostałe 3 przypadki błędów
+    Direction neighbourFieldDirection = findNeighbourField(startingFieldOnFrame, endChar, endInt);
+    if (neighbourFieldDirection == ERROR)
+    {
+        cout << "UNKNOWN_MOVE_DIRECTION" << endl;
+        return;
+    }
 
+    if (!isEmptyFieldInDirection(startingFieldOnFrame, neighbourFieldDirection))
+    {
+        cout << "BAD_MOVE_ROW_IS_FULL" << endl;
+        return;
+    }
+
+    movePawns(board, startingFieldOnFrame, neighbourFieldDirection);
     cout << "MOVE_COMITTED" << endl;
+
+    if (board.playerColor == WHITEPAWN)
+    {
+        board.playerColor = BLACKPAWN;
+    }
+
+    else if (board.playerColor == BLACKPAWN)
+    {
+        board.playerColor = WHITEPAWN;
+    }
 }
 
 
@@ -687,7 +785,7 @@ void executeCommand(const string& command, Board &board)
             checkPawns(board);
         }
 
-        cout << board.boardState << endl;
+        printBoardState(board.boardState);
     }
 
     else if (command == PRINTBOARD)
